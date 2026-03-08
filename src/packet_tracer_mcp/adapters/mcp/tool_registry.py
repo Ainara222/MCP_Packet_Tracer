@@ -163,6 +163,9 @@ def register_tools(mcp: FastMCP) -> None:
         router_model: str = "2911",
         switch_model: str = "2960-24TT",
         template: str = "multi_lan",
+        floating_routes: bool = False,
+        ospf_process_id: int = 1,
+        eigrp_as: int = 100,
     ) -> str:
         """
         Genera un plan completo de topología de red para Packet Tracer.
@@ -181,6 +184,10 @@ def register_tools(mcp: FastMCP) -> None:
         - switch_model: Modelo de switch (2960, 3560)
         - template: Plantilla (single_lan, multi_lan, multi_lan_wan, star, hub_spoke,
           branch_office, router_on_a_stick, three_router_triangle, custom)
+        - floating_routes: Si True con routing=static, agrega rutas de respaldo con AD=254
+          por caminos alternativos (requiere topología con múltiples caminos)
+        - ospf_process_id: ID de proceso OSPF (1-65535, default 1)
+        - eigrp_as: Número de AS para EIGRP (1-65535, default 100)
 
         Devuelve el plan JSON completo.
         """
@@ -197,6 +204,9 @@ def register_tools(mcp: FastMCP) -> None:
             routing=RoutingProtocol(routing),
             router_model=router_model,
             switch_model=switch_model,
+            floating_routes=floating_routes,
+            ospf_process_id=ospf_process_id,
+            eigrp_as=eigrp_as,
         )
         plan, validation = plan_from_request(request)
         return plan.model_dump_json(indent=2)
@@ -321,6 +331,9 @@ def register_tools(mcp: FastMCP) -> None:
         switch_model: str = "2960-24TT",
         template: str = "multi_lan",
         deploy: bool = True,
+        floating_routes: bool = False,
+        ospf_process_id: int = 1,
+        eigrp_as: int = 100,
     ) -> str:
         """
         Pipeline completo: planifica, valida, genera, explica, estima y despliega.
@@ -343,6 +356,9 @@ def register_tools(mcp: FastMCP) -> None:
         - template: single_lan, multi_lan, multi_lan_wan, star, hub_spoke,
           branch_office, router_on_a_stick, three_router_triangle, custom
         - deploy: Si True, copia script al portapapeles y exporta archivos
+        - floating_routes: Si True con routing=static, agrega rutas de respaldo con AD=254
+        - ospf_process_id: ID de proceso OSPF (1-65535, default 1)
+        - eigrp_as: Número de AS para EIGRP (1-65535, default 100)
         """
         request = TopologyRequest(
             template=TopologyTemplate(template),
@@ -357,6 +373,9 @@ def register_tools(mcp: FastMCP) -> None:
             routing=RoutingProtocol(routing),
             router_model=router_model,
             switch_model=switch_model,
+            floating_routes=floating_routes,
+            ospf_process_id=ospf_process_id,
+            eigrp_as=eigrp_as,
         )
         plan, validation = plan_from_request(request)
         explanation = explain_plan(plan)
@@ -373,6 +392,8 @@ def register_tools(mcp: FastMCP) -> None:
         parts.append(f"DHCP Pools: {len(plan.dhcp_pools)}")
         parts.append(f"Rutas estáticas: {len(plan.static_routes)}")
         parts.append(f"OSPF configs: {len(plan.ospf_configs)}")
+        parts.append(f"RIP configs: {len(plan.rip_configs)}")
+        parts.append(f"EIGRP configs: {len(plan.eigrp_configs)}")
         parts.append("")
 
         # --- Validación ---

@@ -22,10 +22,11 @@ DEFAULT_DNS = "8.8.8.8"
 
 # Capacidades del sistema (para que el LLM sepa qué soportamos)
 CAPABILITIES = {
-    "version": "0.2.0",
-    "routing": ["static", "ospf"],
-    "features": ["dhcp", "wan", "switching", "auto_fix", "explain", "dry_run"],
-    "unsupported": ["nat", "acl", "eigrp", "vlan", "stp"],
+    "version": "0.4.0",
+    "routing": ["static", "static_floating", "ospf", "eigrp", "rip", "none"],
+    "features": ["dhcp", "wan", "switching", "auto_fix", "explain", "dry_run",
+                 "floating_routes", "ospf_multi_process", "eigrp_as_config"],
+    "unsupported": ["nat", "acl", "vlan", "stp"],
     "max_routers": 20,
     "max_pcs_per_lan": 24,
     "max_switches_per_router": 4,

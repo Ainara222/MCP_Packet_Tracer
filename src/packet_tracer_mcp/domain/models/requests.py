@@ -26,3 +26,7 @@ class TopologyRequest(BaseModel):
     switch_model: str = DEFAULT_SWITCH
     base_network: str = DEFAULT_LAN_BASE
     inter_router_network: str = DEFAULT_LINK_BASE
+    # Opciones avanzadas de routing
+    floating_routes: bool = False          # Genera rutas estáticas de respaldo (AD=254)
+    ospf_process_id: int = Field(ge=1, le=65535, default=1)
+    eigrp_as: int = Field(ge=1, le=65535, default=100)

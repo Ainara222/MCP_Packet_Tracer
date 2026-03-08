@@ -22,6 +22,7 @@ mcp = FastMCP(
     instructions=SERVER_INSTRUCTIONS,
     host="127.0.0.1",
     port=TRANSPORT_PORT,
+    stateless_http=True,
 )
 
 register_tools(mcp)

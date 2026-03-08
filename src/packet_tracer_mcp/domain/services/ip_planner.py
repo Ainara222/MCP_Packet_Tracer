@@ -11,6 +11,7 @@ from collections import deque
 
 from ..models.plans import (
     TopologyPlan, DevicePlan, DHCPPool, StaticRoute, OSPFConfig,
+    RIPConfig, EIGRPConfig,
 )
 from ...shared.enums import RoutingProtocol
 from ...shared.utils import wildcard_mask, first_ip
@@ -39,6 +40,9 @@ class IPPlanner:
         plan: TopologyPlan,
         routing: RoutingProtocol = RoutingProtocol.STATIC,
         dhcp: bool = True,
+        floating_routes: bool = False,
+        ospf_process_id: int = 1,
+        eigrp_as: int = 100,
     ) -> TopologyPlan:
         """Asigna IPs, genera DHCP pools y rutas."""
         routers = plan.devices_by_category("router")
@@ -96,8 +100,14 @@ class IPPlanner:
         # Routing
         if routing == RoutingProtocol.STATIC:
             self._plan_static_routes(plan, routers, router_lans, link_subnets)
+            if floating_routes:
+                self._plan_floating_static_routes(plan, routers, router_lans, link_subnets)
         elif routing == RoutingProtocol.OSPF:
-            self._plan_ospf(plan, routers)
+            self._plan_ospf(plan, routers, process_id=ospf_process_id)
+        elif routing == RoutingProtocol.EIGRP:
+            self._plan_eigrp(plan, routers, as_number=eigrp_as)
+        elif routing == RoutingProtocol.RIP:
+            self._plan_rip(plan, routers)
 
         return plan
 
@@ -189,7 +199,7 @@ class IPPlanner:
                         next_hop=next_hop,
                     ))
 
-    def _plan_ospf(self, plan: TopologyPlan, routers: list[DevicePlan]):
+    def _plan_ospf(self, plan: TopologyPlan, routers: list[DevicePlan], process_id: int = 1):
         for router in routers:
             networks = []
             for ip_cidr in router.interfaces.values():
@@ -201,10 +211,117 @@ class IPPlanner:
                     "area": 0,
                 })
             plan.ospf_configs.append(OSPFConfig(
-                router=router.name, process_id=1,
+                router=router.name, process_id=process_id,
                 router_id=first_ip(router.interfaces),
                 networks=networks,
             ))
+
+    def _plan_rip(self, plan: TopologyPlan, routers: list[DevicePlan]):
+        """Genera configuración RIP v2 para todos los routers."""
+        for router in routers:
+            classless_nets: list[str] = []
+            for ip_cidr in router.interfaces.values():
+                ip_iface = ipaddress.IPv4Interface(ip_cidr)
+                net_addr = str(ip_iface.network.network_address)
+                if net_addr not in classless_nets:
+                    classless_nets.append(net_addr)
+            plan.rip_configs.append(RIPConfig(
+                router=router.name,
+                version=2,
+                networks=classless_nets,
+                no_auto_summary=True,
+            ))
+
+    def _plan_eigrp(self, plan: TopologyPlan, routers: list[DevicePlan], as_number: int = 100):
+        """Genera configuración EIGRP para todos los routers."""
+        for router in routers:
+            networks = []
+            for ip_cidr in router.interfaces.values():
+                ip_net = ipaddress.IPv4Interface(ip_cidr)
+                network = ip_net.network
+                entry = {
+                    "network": str(network.network_address),
+                    "wildcard": wildcard_mask(network),
+                }
+                if entry not in networks:
+                    networks.append(entry)
+            plan.eigrp_configs.append(EIGRPConfig(
+                router=router.name,
+                as_number=as_number,
+                networks=networks,
+                no_auto_summary=True,
+            ))
+
+    def _plan_floating_static_routes(
+        self, plan: TopologyPlan, routers: list[DevicePlan],
+        router_lans: dict[str, list[ipaddress.IPv4Network]],
+        link_subnets: dict[tuple[str, str], ipaddress.IPv4Network],
+        admin_distance: int = 254,
+    ):
+        """
+        Genera rutas estáticas flotantes (backup) por caminos alternativos.
+        Solo produce rutas cuando existe un path alternativo al primario.
+        """
+        adjacency: dict[str, set[str]] = {r.name: set() for r in routers}
+        for r1, r2 in link_subnets:
+            adjacency.setdefault(r1, set()).add(r2)
+            adjacency.setdefault(r2, set()).add(r1)
+
+        router_by_name = {r.name: r for r in routers}
+
+        def _bfs_first_hop(source: str, target: str, blocked: set[str] | None = None) -> str | None:
+            if source == target:
+                return None
+            seen: set[str] = {source} | (blocked or set())
+            q: deque[tuple[str, str | None]] = deque([(source, None)])
+            while q:
+                current, first = q.popleft()
+                for nxt in adjacency.get(current, set()):
+                    if nxt in seen:
+                        continue
+                    seen.add(nxt)
+                    first_hop = nxt if first is None else first
+                    if nxt == target:
+                        return first_hop
+                    q.append((nxt, first_hop))
+            return None
+
+        def _ip_on_subnet(router_name: str, subnet: ipaddress.IPv4Network) -> str | None:
+            router = router_by_name.get(router_name)
+            if not router:
+                return None
+            for ip_cidr in router.interfaces.values():
+                iface = ipaddress.IPv4Interface(ip_cidr)
+                if iface.network == subnet:
+                    return str(iface.ip)
+            return None
+
+        for router in routers:
+            for other in routers:
+                if other.name == router.name:
+                    continue
+                primary_hop = _bfs_first_hop(router.name, other.name)
+                if not primary_hop:
+                    continue
+                # Find alternate path by blocking the primary next hop
+                alt_hop = _bfs_first_hop(router.name, other.name, blocked={primary_hop})
+                if not alt_hop:
+                    continue
+                key = tuple(sorted([router.name, alt_hop]))
+                subnet = link_subnets.get(key)
+                if subnet is None:
+                    continue
+                next_hop_ip = _ip_on_subnet(alt_hop, subnet)
+                if not next_hop_ip:
+                    continue
+                for lan_subnet in router_lans.get(other.name, []):
+                    plan.static_routes.append(StaticRoute(
+                        router=router.name,
+                        destination=str(lan_subnet.network_address),
+                        mask=str(lan_subnet.netmask),
+                        next_hop=next_hop_ip,
+                        admin_distance=admin_distance,
+                    ))
 
 
 def _is_router_switch(a: DevicePlan, b: DevicePlan) -> bool:

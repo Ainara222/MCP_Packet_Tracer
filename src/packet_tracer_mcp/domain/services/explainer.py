@@ -76,14 +76,26 @@ def explain_plan(plan: TopologyPlan) -> list[str]:
 
     # Routing
     if plan.static_routes:
-        explanations.append(
-            f"Se configuraron {len(plan.static_routes)} ruta(s) estática(s) — "
-            f"cada router sabe cómo alcanzar las LANs de los otros routers."
-        )
+        floating = [r for r in plan.static_routes if r.admin_distance != 1]
+        primary = [r for r in plan.static_routes if r.admin_distance == 1]
+        msg = f"Se configuraron {len(primary)} ruta(s) estática(s) — cada router sabe cómo alcanzar las LANs de los otros routers."
+        if floating:
+            msg += f" Además {len(floating)} ruta(s) flotante(s) de respaldo con AD={floating[0].admin_distance}."
+        explanations.append(msg)
     if plan.ospf_configs:
         explanations.append(
-            f"Se configuró OSPF en {len(plan.ospf_configs)} router(s) — "
-            f"las rutas se aprenden dinámicamente."
+            f"Se configuró OSPF (proceso {plan.ospf_configs[0].process_id}) en {len(plan.ospf_configs)} router(s) — "
+            f"las rutas se aprenden dinámicamente mediante LSA."
+        )
+    if plan.rip_configs:
+        explanations.append(
+            f"Se configuró RIP v{plan.rip_configs[0].version} en {len(plan.rip_configs)} router(s) — "
+            f"protocolo de vector de distancia, no auto-summary activado."
+        )
+    if plan.eigrp_configs:
+        explanations.append(
+            f"Se configuró EIGRP (AS {plan.eigrp_configs[0].as_number}) en {len(plan.eigrp_configs)} router(s) — "
+            f"protocolo avanzado de vector de distancia (Cisco), convergencia rápida."
         )
 
     # Validación

@@ -40,7 +40,14 @@ def plan_from_request(request: TopologyRequest) -> tuple[TopologyPlan, Validatio
         lan_base=request.base_network,
         link_base=request.inter_router_network,
     )
-    ip_planner.plan_addressing(plan, routing=request.routing, dhcp=request.dhcp)
+    ip_planner.plan_addressing(
+        plan,
+        routing=request.routing,
+        dhcp=request.dhcp,
+        floating_routes=request.floating_routes,
+        ospf_process_id=request.ospf_process_id,
+        eigrp_as=request.eigrp_as,
+    )
 
     _create_validations(plan)
 

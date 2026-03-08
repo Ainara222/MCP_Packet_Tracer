@@ -53,6 +53,9 @@ def estimate_from_request(request: TopologyRequest) -> dict:
             "dhcp_pools": request.routers if request.dhcp else 0,
             "static_routes": router_links * 2 if request.routing.value == "static" else 0,
             "ospf_configs": request.routers if request.routing.value == "ospf" else 0,
+            "rip_configs": request.routers if request.routing.value == "rip" else 0,
+            "eigrp_configs": request.routers if request.routing.value == "eigrp" else 0,
+            "floating_routes": "yes (backup via alternate paths)" if request.floating_routes and request.routing.value == "static" else "no",
         },
         "subnets": {
             "lan_subnets": request.routers,
@@ -71,6 +74,8 @@ def estimate_from_plan(plan: TopologyPlan) -> dict:
         "dhcp_pools": len(plan.dhcp_pools),
         "static_routes": len(plan.static_routes),
         "ospf_configs": len(plan.ospf_configs),
+        "rip_configs": len(plan.rip_configs),
+        "eigrp_configs": len(plan.eigrp_configs),
         "validations": len(plan.validations),
         "has_errors": not plan.is_valid,
         "error_count": len(plan.errors),
@@ -85,6 +90,10 @@ def _estimate_complexity(req: TopologyRequest) -> str:
         score += 5
     if req.routing.value == "ospf":
         score += 10
+    elif req.routing.value in ("eigrp", "rip"):
+        score += 8
+    if req.floating_routes:
+        score += 5
 
     if score <= 10:
         return "simple"

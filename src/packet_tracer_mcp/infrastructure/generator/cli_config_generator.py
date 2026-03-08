@@ -9,7 +9,6 @@ from __future__ import annotations
 from ...domain.models.plans import TopologyPlan, DevicePlan
 from ...shared.utils import prefix_to_mask
 
-
 def generate_all_configs(plan: TopologyPlan) -> dict[str, str]:
     """
     Genera configs CLI para todos los dispositivos que las necesiten.
@@ -63,7 +62,10 @@ def _router_config(router: DevicePlan, plan: TopologyPlan) -> str:
     # --- Rutas estáticas ---
     static_routes = [r for r in plan.static_routes if r.router == router.name]
     for route in static_routes:
-        lines.append(f"ip route {route.destination} {route.mask} {route.next_hop}")
+        line = f"ip route {route.destination} {route.mask} {route.next_hop}"
+        if route.admin_distance != 1:
+            line += f" {route.admin_distance}"
+        lines.append(line)
     if static_routes:
         lines.append("")
 
@@ -77,6 +79,29 @@ def _router_config(router: DevicePlan, plan: TopologyPlan) -> str:
             lines.append(
                 f" network {net['network']} {net['wildcard']} area {net['area']}"
             )
+        lines.append(" exit")
+        lines.append("")
+
+    # --- RIP ---
+    rip_cfgs = [r for r in plan.rip_configs if r.router == router.name]
+    for rip in rip_cfgs:
+        lines.append(f"router rip")
+        lines.append(f" version {rip.version}")
+        for net in rip.networks:
+            lines.append(f" network {net}")
+        if rip.no_auto_summary:
+            lines.append(" no auto-summary")
+        lines.append(" exit")
+        lines.append("")
+
+    # --- EIGRP ---
+    eigrp_cfgs = [e for e in plan.eigrp_configs if e.router == router.name]
+    for eigrp in eigrp_cfgs:
+        lines.append(f"router eigrp {eigrp.as_number}")
+        for net in eigrp.networks:
+            lines.append(f" network {net['network']} {net['wildcard']}")
+        if eigrp.no_auto_summary:
+            lines.append(" no auto-summary")
         lines.append(" exit")
         lines.append("")
 
