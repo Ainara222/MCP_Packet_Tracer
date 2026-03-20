@@ -10,6 +10,8 @@ Controla Cisco Packet Tracer desde Claude Code, VS Code Copilot o Codex CLI usan
 
 ## 1. Instalar el MCP Server
 
+### Opción A: Usando pip (estándar)
+
 ```bash
 cd ruta/al/proyecto
 pip install -e .
@@ -19,6 +21,25 @@ Para desarrollo (incluye pytest, ruff, mypy):
 
 ```bash
 pip install -e ".[dev]"
+```
+
+### Opción B: Usando uv (rápido)
+
+```bash
+cd ruta/al/proyecto
+uv venv
+uv pip install -e .
+```
+
+Para desarrollo con uv:
+
+```bash
+uv pip install -e ".[dev]"
+```
+
+Nota: [uv](https://docs.astral.sh/uv/) es un gestor de paquetes de Python más rápido. Para instalarlo:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Linux/Mac
 ```
 
 ## 2. Instalar PTBuilder en Packet Tracer

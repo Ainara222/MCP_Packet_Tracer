@@ -10,10 +10,26 @@ Le decís "creame una red con 3 routers, DHCP y OSPF" y el servidor planifica la
 
 ## Instalación
 
+### Opción A: Usando pip (estándar)
+
 ```bash
 git clone <repo>
-cd PACKET-TRACER
+cd MCP_Packet_Tracer
 pip install -e .
+```
+
+### Opción B: Usando uv (rápido)
+
+```bash
+git clone <repo>
+cd MCP_Packet_Tracer
+uv venv
+uv pip install -e .
+```
+
+Nota: [uv](https://docs.astral.sh/uv/) es un gestor de paquetes de Python más rápido. Para instalarlo:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Linux/Mac
 ```
 
 ---
