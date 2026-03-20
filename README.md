@@ -92,6 +92,19 @@ Ambos arrancan automáticamente. No se necesita ningún script adicional.
 }
 ```
 
+**Claude CLI** — `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "packet-tracer": {
+      "type": "http",
+      "url": "http://127.0.0.1:39000/mcp"
+    }
+  }
+}
+```
+
 ### 3. Usar desde el LLM
 
 Pedile al LLM que cree una red. El servidor expone 22 tools MCP que cubren todo el pipeline:

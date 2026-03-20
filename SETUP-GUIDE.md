@@ -150,6 +150,34 @@ type = "url"
 url = "http://127.0.0.1:39000/mcp"
 ```
 
+### Claude CLI
+
+Crear `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "packet-tracer": {
+      "type": "http",
+      "url": "http://127.0.0.1:39000/mcp"
+    }
+  }
+}
+```
+
+O alternativamente crear el archivo `~/.claude/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "packet-tracer": {
+      "type": "http",
+      "url": "http://127.0.0.1:39000/mcp"
+    }
+  }
+}
+```
+
 ## 5. Uso diario
 
 Cada vez que quieras usar el sistema:

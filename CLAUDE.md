@@ -99,6 +99,18 @@ mypy src/
 }
 ```
 
+**Claude CLI** (`~/.claude.json`):
+```json
+{
+  "mcpServers": {
+    "packet-tracer": {
+      "type": "http",
+      "url": "http://127.0.0.1:39000/mcp"
+    }
+  }
+}
+```
+
 ### Environment Variables
 
 | Variable | Default | Description |
