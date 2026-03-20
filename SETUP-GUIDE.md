@@ -11,7 +11,7 @@ Controla Cisco Packet Tracer desde Claude Code, VS Code Copilot o Codex CLI usan
 ## 1. Instalar el MCP Server
 
 ```bash
-cd C:\Users\David\sites\MCP-Packet-Tracer
+cd ruta/al/proyecto
 pip install -e .
 ```
 
@@ -28,7 +28,7 @@ PTBuilder es la extension que permite ejecutar comandos JavaScript en Packet Tra
 1. Abre Packet Tracer
 2. Ve a **Extensions > Scripting > Configure PT Script Modules**
 3. Click en **Add...**
-4. Navega a `C:\Users\David\sites\PTBuilder\Builder.pts` y abrelo
+4. Navega a `<ruta/al/proyecto>/PTBuilder/Builder.pts` y abrelo
 5. Selecciona Builder en la lista y dale **Start**
 
 ## 3. Configurar el Bridge (una sola vez)
@@ -127,7 +127,7 @@ Cada vez que quieras usar el sistema:
 Abre una terminal y ejecuta:
 
 ```bash
-cd C:\Users\David\sites\MCP-Packet-Tracer
+cd ruta/al/proyecto
 python -m src.packet_tracer_mcp
 ```
 
